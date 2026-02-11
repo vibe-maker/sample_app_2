@@ -1,24 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-
-type Role = "subject" | "verb" | "object" | "place" | "time";
+import { useState } from "react";
 
 type Token = {
   text: string;
-  role: Role;
+  role: string;
 };
 
 type Level = {
   id: number;
   scenario: string;
   tokens: Token[];
-  correctSentence: string;
 };
 
-type ValidationState = "none" | "success" | "error";
-
-const baseLevels: Omit<Level, "correctSentence">[] = [
+const levels: Level[] = [
   {
     id: 1,
     scenario: "After-school study time.",
@@ -30,143 +25,207 @@ const baseLevels: Omit<Level, "correctSentence">[] = [
       { text: "now", role: "time" },
     ],
   },
+  {
+    id: 2,
+    scenario: "Yesterday at the park.",
+    tokens: [
+      { text: "They", role: "subject" },
+      { text: "played", role: "verb" },
+      { text: "soccer", role: "object" },
+      { text: "at the park", role: "place" },
+      { text: "yesterday", role: "time" },
+    ],
+  },
+  {
+    id: 3,
+    scenario: "Tomorrow’s plan.",
+    tokens: [
+      { text: "I", role: "subject" },
+      { text: "will visit", role: "verb" },
+      { text: "my grandmother", role: "object" },
+      { text: "at her house", role: "place" },
+      { text: "tomorrow", role: "time" },
+    ],
+  },
+  {
+    id: 4,
+    scenario: "Morning routine.",
+    tokens: [
+      { text: "He", role: "subject" },
+      { text: "brushes", role: "verb" },
+      { text: "his teeth", role: "object" },
+      { text: "in the bathroom", role: "place" },
+      { text: "every morning", role: "time" },
+    ],
+  },
+  {
+    id: 5,
+    scenario: "Last weekend trip.",
+    tokens: [
+      { text: "We", role: "subject" },
+      { text: "went", role: "verb" },
+      { text: "camping", role: "object" },
+      { text: "by the river", role: "place" },
+      { text: "last weekend", role: "time" },
+    ],
+  },
+  {
+    id: 6,
+    scenario: "Future dream.",
+    tokens: [
+      { text: "She", role: "subject" },
+      { text: "will become", role: "verb" },
+      { text: "a doctor", role: "object" },
+      { text: "in the future", role: "place" },
+      { text: "one day", role: "time" },
+    ],
+  },
+  {
+    id: 7,
+    scenario: "Lunch time.",
+    tokens: [
+      { text: "The students", role: "subject" },
+      { text: "are eating", role: "verb" },
+      { text: "their lunch", role: "object" },
+      { text: "in the cafeteria", role: "place" },
+      { text: "right now", role: "time" },
+    ],
+  },
+  {
+    id: 8,
+    scenario: "Last night.",
+    tokens: [
+      { text: "My father", role: "subject" },
+      { text: "cooked", role: "verb" },
+      { text: "dinner", role: "object" },
+      { text: "in the kitchen", role: "place" },
+      { text: "last night", role: "time" },
+    ],
+  },
+  {
+    id: 9,
+    scenario: "Weekend plan.",
+    tokens: [
+      { text: "We", role: "subject" },
+      { text: "are going to watch", role: "verb" },
+      { text: "a movie", role: "object" },
+      { text: "at the theater", role: "place" },
+      { text: "this weekend", role: "time" },
+    ],
+  },
+  {
+    id: 10,
+    scenario: "School day.",
+    tokens: [
+      { text: "The teacher", role: "subject" },
+      { text: "explains", role: "verb" },
+      { text: "the lesson", role: "object" },
+      { text: "in the classroom", role: "place" },
+      { text: "every day", role: "time" },
+    ],
+  },
 ];
 
-const levels: Level[] = baseLevels.map((level) => ({
-  ...level,
-  correctSentence: level.tokens.map((t) => t.text).join(" ") + ".",
-}));
-
-function shuffle<T>(array: T[]): T[] {
-  const arr = array.slice();
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
-}
-
 export default function Page() {
-  const [currentSequence, setCurrentSequence] = useState<number[]>([]);
-  const [shuffledOrder, setShuffledOrder] = useState<number[]>([]);
-  const [validationState, setValidationState] =
-    useState<ValidationState>("none");
-  const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [selected, setSelected] = useState<number[]>([]);
+  const [score, setScore] = useState(0);
+  const [showResult, setShowResult] = useState(false);
 
-  const level = levels[0];
+  const level = levels[currentIndex];
 
-  useEffect(() => {
-    const indices = level.tokens.map((_, i) => i);
-    setShuffledOrder(shuffle(indices));
-    setCurrentSequence([]);
-  }, [level.tokens]);
-
-  const dropTiles = useMemo(
-    () => currentSequence.map((idx) => level.tokens[idx]),
-    [currentSequence, level.tokens]
-  );
-
-  const bankIndices = useMemo(
-    () => shuffledOrder.filter((idx) => !currentSequence.includes(idx)),
-    [shuffledOrder, currentSequence]
-  );
+  function handleClick(idx: number) {
+    if (selected.includes(idx)) return;
+    setSelected([...selected, idx]);
+  }
 
   function buildSentence(seq: number[]): string {
-    return seq.map((idx) => level.tokens[idx].text).join(" ") + ".";
+    return (
+      seq.map((i) => level.tokens[i].text).join(" ") + "."
+    );
   }
 
-  function handleClickBankTile(idx: number) {
-    setCurrentSequence((prev) => [...prev, idx]);
-    setValidationState("none");
-    setFeedbackMessage("");
-  }
+  function checkAnswer() {
+    const correctOrder = level.tokens.map((_, i) => i);
+    const isCorrect =
+      JSON.stringify(selected) === JSON.stringify(correctOrder);
 
-  function handleUndo() {
-    setCurrentSequence((prev) => prev.slice(0, -1));
-    setValidationState("none");
-    setFeedbackMessage("");
-  }
-
-  function handleCheck() {
-    if (currentSequence.length !== level.tokens.length) return;
-
-    const userSentence =
-      currentSequence.map((i) => level.tokens[i].text).join(" ") + ".";
-    const correctSentence = level.correctSentence;
-
-    if (userSentence === correctSentence) {
-      setValidationState("success");
-      setFeedbackMessage("Excellent! The sentence is correct.");
+    if (isCorrect) {
+      setScore(score + 1);
+      setShowResult(true);
     } else {
-      setValidationState("error");
-      setFeedbackMessage("Not quite. Try again!");
+      alert("❌ Try again!");
     }
   }
 
+  function nextQuestion() {
+    if (currentIndex < levels.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+      setSelected([]);
+      setShowResult(false);
+    } else {
+      setCurrentIndex(levels.length);
+    }
+  }
+
+  if (currentIndex >= levels.length) {
+    return (
+      <main className="min-h-screen flex flex-col items-center justify-center p-6">
+        <h1 className="text-3xl font-bold mb-4">🎉 Quiz Finished!</h1>
+        <p className="text-xl">
+          Your Score: {score} / {levels.length}
+        </p>
+      </main>
+    );
+  }
+
   return (
-    <div className="container">
-      <div className="section">
-        <h1 className="title">Sentence Structure Puzzle</h1>
-        <p className="subtitle">Build the correct sentence using all tiles.</p>
-      </div>
+    <main className="min-h-screen flex flex-col items-center p-6 bg-gray-50">
+      <div className="w-full max-w-2xl bg-white p-6 rounded-2xl shadow-md">
 
-      <div className="section">
-        <strong>Scenario:</strong> {level.scenario}
-      </div>
-
-      {/* Drop Zone */}
-      <div className="section">
-        <div className="zone">
-          {dropTiles.length === 0 ? (
-            <p>Click tiles below to build your sentence.</p>
-          ) : (
-            dropTiles.map((token, idx) => (
-              <button key={idx} className="tile">
-                {token.text}
-              </button>
-            ))
-          )}
+        <div className="flex justify-between mb-4 text-sm text-gray-500">
+          <span>Question {currentIndex + 1} / {levels.length}</span>
+          <span>Score: {score}</span>
         </div>
-      </div>
 
-      {/* Controls */}
-      <div className="section">
-        <button
-          className="button button-secondary"
-          onClick={handleUndo}
-        >
-          Undo
-        </button>{" "}
-        <button
-          className="button button-primary"
-          onClick={handleCheck}
-        >
-          Check Sentence
-        </button>
-      </div>
+        <h2 className="text-xl font-semibold mb-2">
+          Situation: {level.scenario}
+        </h2>
 
-      {/* Feedback */}
-      {feedbackMessage && (
-        <div className="section">
-          <strong>{feedbackMessage}</strong>
+        <div className="min-h-[60px] border rounded-lg p-3 mb-4 bg-gray-100">
+          {selected.length > 0 ? buildSentence(selected) : "Make a sentence."}
         </div>
-      )}
 
-      {/* Word Bank */}
-      <div className="section">
-        <div className="zone">
-          {bankIndices.map((idx) => (
+        <div className="flex flex-wrap gap-2 mb-4">
+          {level.tokens.map((token, idx) => (
             <button
               key={idx}
-              className="tile"
-              onClick={() => handleClickBankTile(idx)}
+              onClick={() => handleClick(idx)}
+              className="px-3 py-1 bg-blue-100 rounded hover:bg-blue-200"
             >
-              {level.tokens[idx].text}
+              {token.text}
             </button>
           ))}
         </div>
+
+        {!showResult ? (
+          <button
+            onClick={checkAnswer}
+            disabled={selected.length !== level.tokens.length}
+            className="w-full py-2 bg-blue-500 text-white rounded disabled:bg-gray-300"
+          >
+            Check Answer
+          </button>
+        ) : (
+          <button
+            onClick={nextQuestion}
+            className="w-full py-2 bg-green-500 text-white rounded"
+          >
+            Next Question
+          </button>
+        )}
       </div>
-    </div>
+    </main>
   );
 }
 
