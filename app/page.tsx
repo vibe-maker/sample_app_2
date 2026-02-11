@@ -1,20 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+
+type Role = "subject" | "verb" | "object" | "place" | "time";
 
 type Token = {
   text: string;
-  role: string;
+  role: Role;
 };
 
 type Level = {
   id: number;
   scenario: string;
   tokens: Token[];
+  correctSentence: string;
 };
 
-const levels: Level[] = [
-  {
+type ValidationState = "none" | "success" | "error";
+
+const baseLevels: Omit<Level, "correctSentence">[] = [
+{
     id: 1,
     scenario: "After-school study time.",
     tokens: [
@@ -126,106 +131,143 @@ const levels: Level[] = [
   },
 ];
 
-export default function Page() {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [selected, setSelected] = useState<number[]>([]);
-  const [score, setScore] = useState(0);
-  const [showResult, setShowResult] = useState(false);
+const levels: Level[] = baseLevels.map((level) => ({
+  ...level,
+  correctSentence: level.tokens.map((t) => t.text).join(" ") + ".",
+}));
 
-  const level = levels[currentIndex];
-
-  function handleClick(idx: number) {
-    if (selected.includes(idx)) return;
-    setSelected([...selected, idx]);
+function shuffle<T>(array: T[]): T[] {
+  const arr = array.slice();
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
   }
+  return arr;
+}
+
+export default function Page() {
+  const [currentSequence, setCurrentSequence] = useState<number[]>([]);
+  const [shuffledOrder, setShuffledOrder] = useState<number[]>([]);
+  const [validationState, setValidationState] =
+    useState<ValidationState>("none");
+  const [feedbackMessage, setFeedbackMessage] = useState("");
+
+  const level = levels[0];
+
+  useEffect(() => {
+    const indices = level.tokens.map((_, i) => i);
+    setShuffledOrder(shuffle(indices));
+    setCurrentSequence([]);
+  }, [level.tokens]);
+
+  const dropTiles = useMemo(
+    () => currentSequence.map((idx) => level.tokens[idx]),
+    [currentSequence, level.tokens]
+  );
+
+  const bankIndices = useMemo(
+    () => shuffledOrder.filter((idx) => !currentSequence.includes(idx)),
+    [shuffledOrder, currentSequence]
+  );
 
   function buildSentence(seq: number[]): string {
-    return (
-      seq.map((i) => level.tokens[i].text).join(" ") + "."
-    );
+    return seq.map((idx => level.tokens[idx].text)).join(" ") + ".";
   }
 
-  function checkAnswer() {
-    const correctOrder = level.tokens.map((_, i) => i);
-    const isCorrect =
-      JSON.stringify(selected) === JSON.stringify(correctOrder);
+  function handleClickBankTile(idx: number) {
+    setCurrentSequence((prev) => [...prev, idx]);
+    setValidationState("none");
+    setFeedbackMessage("");
+  }
 
-    if (isCorrect) {
-      setScore(score + 1);
-      setShowResult(true);
+  function handleUndo() {
+    setCurrentSequence((prev) => prev.slice(0, -1));
+    setValidationState("none");
+    setFeedbackMessage("");
+  }
+
+  function handleCheck() {
+    if (currentSequence.length !== level.tokens.length) return;
+
+    const userSentence =
+      currentSequence.map((i) => level.tokens[i].text).join(" ") + ".";
+    const correctSentence = level.correctSentence;
+
+    if (userSentence === correctSentence) {
+      setValidationState("success");
+      setFeedbackMessage("Excellent! The sentence is correct.");
     } else {
-      alert("❌ Try again!");
+      setValidationState("error");
+      setFeedbackMessage("Not quite. Try again!");
     }
-  }
-
-  function nextQuestion() {
-    if (currentIndex < levels.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-      setSelected([]);
-      setShowResult(false);
-    } else {
-      setCurrentIndex(levels.length);
-    }
-  }
-
-  if (currentIndex >= levels.length) {
-    return (
-      <main className="min-h-screen flex flex-col items-center justify-center p-6">
-        <h1 className="text-3xl font-bold mb-4">🎉 Quiz Finished!</h1>
-        <p className="text-xl">
-          Your Score: {score} / {levels.length}
-        </p>
-      </main>
-    );
   }
 
   return (
-    <main className="min-h-screen flex flex-col items-center p-6 bg-gray-50">
-      <div className="w-full max-w-2xl bg-white p-6 rounded-2xl shadow-md">
+    <div className="container">
+      <div className="section">
+        <h1 className="title">Sentence Structure Puzzle</h1>
+        <p className="subtitle">Build the correct sentence using all tiles.</p>
+      </div>
 
-        <div className="flex justify-between mb-4 text-sm text-gray-500">
-          <span>Question {currentIndex + 1} / {levels.length}</span>
-          <span>Score: {score}</span>
+      <div className="section">
+        <strong>Scenario:</strong> {level.scenario}
+      </div>
+
+      {/* Drop Zone */}
+      <div className="section">
+        <div className="zone">
+          {dropTiles.length === 0 ? (
+            <p>Click tiles below to build your sentence.</p>
+          ) : (
+            dropTiles.map((token, idx) => (
+              <button key={idx} className="tile">
+                {token.text}
+              </button>
+            ))
+          )}
         </div>
+      </div>
 
-        <h2 className="text-xl font-semibold mb-2">
-          Situation: {level.scenario}
-        </h2>
+      {/* Controls */}
+      <div className="section">
+        <button
+          className="button button-secondary"
+          onClick={handleUndo}
+        >
+          Undo
+        </button>{" "}
+        <button
+          className="button button-primary"
+          onClick={handleCheck}
+        >
+          Check Sentence
+        </button>
+      </div>
 
-        <div className="min-h-[60px] border rounded-lg p-3 mb-4 bg-gray-100">
-          {selected.length > 0 ? buildSentence(selected) : "Make a sentence."}
+      {/* Feedback */}
+      {feedbackMessage && (
+        <div className="section">
+          <strong>{feedbackMessage}</strong>
         </div>
+      )}
 
-        <div className="flex flex-wrap gap-2 mb-4">
-          {level.tokens.map((token, idx) => (
+      {/* Word Bank */}
+      <div className="section">
+        <div className="zone">
+          {bankIndices.map((idx) => (
             <button
               key={idx}
-              onClick={() => handleClick(idx)}
-              className="px-3 py-1 bg-blue-100 rounded hover:bg-blue-200"
+              className="tile"
+              onClick={() => handleClickBankTile(idx)}
             >
-              {token.text}
+              {level.tokens[idx].text}
             </button>
           ))}
         </div>
-
-        {!showResult ? (
-          <button
-            onClick={checkAnswer}
-            disabled={selected.length !== level.tokens.length}
-            className="w-full py-2 bg-blue-500 text-white rounded disabled:bg-gray-300"
-          >
-            Check Answer
-          </button>
-        ) : (
-          <button
-            onClick={nextQuestion}
-            className="w-full py-2 bg-green-500 text-white rounded"
-          >
-            Next Question
-          </button>
-        )}
       </div>
-    </main>
+    </div>
   );
 }
+
+
 
