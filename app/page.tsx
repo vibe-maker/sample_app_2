@@ -19,7 +19,7 @@ type Level = {
 type ValidationState = "none" | "success" | "error";
 
 const baseLevels: Omit<Level, "correctSentence">[] = [
-{
+  {
     id: 1,
     scenario: "After-school study time.",
     tokens: [
@@ -52,86 +52,7 @@ const baseLevels: Omit<Level, "correctSentence">[] = [
       { text: "tomorrow", role: "time" },
     ],
   },
-  {
-    id: 4,
-    scenario: "Morning routine.",
-    tokens: [
-      { text: "He", role: "subject" },
-      { text: "brushes", role: "verb" },
-      { text: "his teeth", role: "object" },
-      { text: "in the bathroom", role: "place" },
-      { text: "every morning", role: "time" },
-    ],
-  },
-  {
-    id: 5,
-    scenario: "Last weekend trip.",
-    tokens: [
-      { text: "We", role: "subject" },
-      { text: "went", role: "verb" },
-      { text: "camping", role: "object" },
-      { text: "by the river", role: "place" },
-      { text: "last weekend", role: "time" },
-    ],
-  },
-  {
-    id: 6,
-    scenario: "Future dream.",
-    tokens: [
-      { text: "She", role: "subject" },
-      { text: "will become", role: "verb" },
-      { text: "a doctor", role: "object" },
-      { text: "in the future", role: "place" },
-      { text: "one day", role: "time" },
-    ],
-  },
-  {
-    id: 7,
-    scenario: "Lunch time.",
-    tokens: [
-      { text: "The students", role: "subject" },
-      { text: "are eating", role: "verb" },
-      { text: "their lunch", role: "object" },
-      { text: "in the cafeteria", role: "place" },
-      { text: "right now", role: "time" },
-    ],
-  },
-  {
-    id: 8,
-    scenario: "Last night.",
-    tokens: [
-      { text: "My father", role: "subject" },
-      { text: "cooked", role: "verb" },
-      { text: "dinner", role: "object" },
-      { text: "in the kitchen", role: "place" },
-      { text: "last night", role: "time" },
-    ],
-  },
-  {
-    id: 9,
-    scenario: "Weekend plan.",
-    tokens: [
-      { text: "We", role: "subject" },
-      { text: "are going to watch", role: "verb" },
-      { text: "a movie", role: "object" },
-      { text: "at the theater", role: "place" },
-      { text: "this weekend", role: "time" },
-    ],
-  },
-  {
-    id: 10,
-    scenario: "School day.",
-    tokens: [
-      { text: "The teacher", role: "subject" },
-      { text: "explains", role: "verb" },
-      { text: "the lesson", role: "object" },
-      { text: "in the classroom", role: "place" },
-      { text: "every day", role: "time" },
-    ],
-  },
 ];
-
-
 
 const levels: Level[] = baseLevels.map((level) => ({
   ...level,
@@ -148,7 +69,7 @@ function shuffle<T>(array: T[]): T[] {
 }
 
 export default function Page() {
-const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [currentSequence, setCurrentSequence] = useState<number[]>([]);
   const [shuffledOrder, setShuffledOrder] = useState<number[]>([]);
   const [validationState, setValidationState] =
@@ -161,7 +82,9 @@ const [currentIndex, setCurrentIndex] = useState(0);
     const indices = level.tokens.map((_, i) => i);
     setShuffledOrder(shuffle(indices));
     setCurrentSequence([]);
-  }, [level.tokens]);
+    setValidationState("none");
+    setFeedbackMessage("");
+  }, [level]);
 
   const dropTiles = useMemo(
     () => currentSequence.map((idx) => level.tokens[idx]),
@@ -172,10 +95,6 @@ const [currentIndex, setCurrentIndex] = useState(0);
     () => shuffledOrder.filter((idx) => !currentSequence.includes(idx)),
     [shuffledOrder, currentSequence]
   );
-
-  function buildSentence(seq: number[]): string {
-    return seq.map((idx => level.tokens[idx].text)).join(" ") + ".";
-  }
 
   function handleClickBankTile(idx: number) {
     setCurrentSequence((prev) => [...prev, idx]);
@@ -191,13 +110,7 @@ const [currentIndex, setCurrentIndex] = useState(0);
 
   function handleCheck() {
     if (currentSequence.length !== level.tokens.length) return;
-  function goToNext() {
-    if (currentIndex < levels.length - 1) {
-    setCurrentIndex((prev) => prev + 1);
-  } else {
-    alert("🎉 All questions completed!");
-  }
-}
+
     const userSentence =
       currentSequence.map((i) => level.tokens[i].text).join(" ") + ".";
     const correctSentence = level.correctSentence;
@@ -208,6 +121,14 @@ const [currentIndex, setCurrentIndex] = useState(0);
     } else {
       setValidationState("error");
       setFeedbackMessage("Not quite. Try again!");
+    }
+  }
+
+  function goToNext() {
+    if (currentIndex < levels.length - 1) {
+      setCurrentIndex((prev) => prev + 1);
+    } else {
+      alert("🎉 All questions completed!");
     }
   }
 
@@ -244,18 +165,21 @@ const [currentIndex, setCurrentIndex] = useState(0);
           onClick={handleUndo}
         >
           Undo
-        </button>{" "}
+        </button>
+
         <button
           className="button button-primary"
           onClick={handleCheck}
         >
           Check Sentence
+        </button>
+
         <button
-  className="button button-primary"
-  onClick={goToNext}
->
-  Next Question
-</button>
+          className="button button-primary"
+          onClick={goToNext}
+        >
+          Next Question
+        </button>
       </div>
 
       {/* Feedback */}
@@ -282,8 +206,4 @@ const [currentIndex, setCurrentIndex] = useState(0);
     </div>
   );
 }
-
-
-
-
 
