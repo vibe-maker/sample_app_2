@@ -131,6 +131,21 @@ const baseLevels: Omit<Level, "correctSentence">[] = [
   },
 ];
 
+function goToNext() {
+  if (currentIndex < levels.length - 1) {
+    setCurrentIndex((prev) => prev + 1);
+  } else {
+    alert("🎉 All questions completed!");
+  }
+}
+<button
+  onClick={goToNext}
+  className="next"
+>
+  Next Question
+</button>
+
+
 const levels: Level[] = baseLevels.map((level) => ({
   ...level,
   correctSentence: level.tokens.map((t) => t.text).join(" ") + ".",
@@ -268,6 +283,7 @@ export default function Page() {
     </div>
   );
 }
+
 
 
 
