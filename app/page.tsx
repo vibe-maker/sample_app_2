@@ -72,7 +72,7 @@ export default function Page() {
   );
 
   function buildSentence(seq: number[]): string {
-    return seq.map((qer(idx => level.tokens[idx].text)).join(" ") + ".";
+    return seq.map((idx) => level.tokens[idx].text).join(" ") + ".";
   }
 
   function handleClickBankTile(idx: number) {
@@ -169,3 +169,4 @@ export default function Page() {
     </div>
   );
 }
+
