@@ -131,19 +131,6 @@ const baseLevels: Omit<Level, "correctSentence">[] = [
   },
 ];
 
-function goToNext() {
-  if (currentIndex < levels.length - 1) {
-    setCurrentIndex((prev) => prev + 1);
-  } else {
-    alert("🎉 All questions completed!");
-  }
-}
-<button
-  onClick={goToNext}
-  className="next"
->
-  Next Question
-</button>
 
 
 const levels: Level[] = baseLevels.map((level) => ({
@@ -161,13 +148,14 @@ function shuffle<T>(array: T[]): T[] {
 }
 
 export default function Page() {
+const [currentIndex, setCurrentIndex] = useState(0);
   const [currentSequence, setCurrentSequence] = useState<number[]>([]);
   const [shuffledOrder, setShuffledOrder] = useState<number[]>([]);
   const [validationState, setValidationState] =
     useState<ValidationState>("none");
   const [feedbackMessage, setFeedbackMessage] = useState("");
 
-  const level = levels[0];
+  const level = levels[currentIndex];
 
   useEffect(() => {
     const indices = level.tokens.map((_, i) => i);
@@ -203,7 +191,13 @@ export default function Page() {
 
   function handleCheck() {
     if (currentSequence.length !== level.tokens.length) return;
-
+  function goToNext() {
+    if (currentIndex < levels.length - 1) {
+    setCurrentIndex((prev) => prev + 1);
+  } else {
+    alert("🎉 All questions completed!");
+  }
+}
     const userSentence =
       currentSequence.map((i) => level.tokens[i].text).join(" ") + ".";
     const correctSentence = level.correctSentence;
@@ -256,7 +250,12 @@ export default function Page() {
           onClick={handleCheck}
         >
           Check Sentence
-        </button>
+        <button
+  className="button button-primary"
+  onClick={goToNext}
+>
+  Next Question
+</button>
       </div>
 
       {/* Feedback */}
@@ -283,6 +282,7 @@ export default function Page() {
     </div>
   );
 }
+
 
 
 
