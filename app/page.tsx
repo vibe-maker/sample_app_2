@@ -78,6 +78,8 @@ export default function Page() {
 
   const level = levels[currentIndex];
 
+  const progressPercent = ((currentIndex + 1) / levels.length) * 100;
+
   useEffect(() => {
     const indices = level.tokens.map((_, i) => i);
     setShuffledOrder(shuffle(indices));
@@ -125,6 +127,8 @@ export default function Page() {
   }
 
   function goToNext() {
+    if (validationState !== "success") return;
+
     if (currentIndex < levels.length - 1) {
       setCurrentIndex((prev) => prev + 1);
     } else {
@@ -134,6 +138,32 @@ export default function Page() {
 
   return (
     <div className="container">
+
+      {/* Progress */}
+      <div className="section">
+        <strong>
+          Question {currentIndex + 1} / {levels.length}
+        </strong>
+        <div
+          style={{
+            height: "10px",
+            background: "#eee",
+            borderRadius: "6px",
+            marginTop: "6px",
+          }}
+        >
+          <div
+            style={{
+              width: `${progressPercent}%`,
+              height: "100%",
+              background: "#4f46e5",
+              borderRadius: "6px",
+              transition: "width 0.3s ease",
+            }}
+          />
+        </div>
+      </div>
+
       <div className="section">
         <h1 className="title">Sentence Structure Puzzle</h1>
         <p className="subtitle">Build the correct sentence using all tiles.</p>
@@ -177,6 +207,11 @@ export default function Page() {
         <button
           className="button button-primary"
           onClick={goToNext}
+          disabled={validationState !== "success"}
+          style={{
+            opacity: validationState === "success" ? 1 : 0.5,
+            cursor: validationState === "success" ? "pointer" : "not-allowed",
+          }}
         >
           Next Question
         </button>
@@ -206,4 +241,5 @@ export default function Page() {
     </div>
   );
 }
+
 
